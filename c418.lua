@@ -1,24 +1,30 @@
--- Thêm cái này vào trong chỗ Đại ca tạo nút
+-- Tạo cái GUI chứa nút
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MyMenu"
+ScreenGui.Parent = game.CoreGui -- Cái này bắt buộc để nó hiện trong game
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 200, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -75)
+MainFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+
+-- Tạo nút Speed
 local SpeedButton = Instance.new("TextButton")
-SpeedButton.Name = "SpeedButton"
-SpeedButton.Parent = MainFrame -- Thay bằng khung menu của Đại ca
-SpeedButton.Size = UDim2.new(0, 100, 0, 30)
-SpeedButton.Position = UDim2.new(0.5, -50, 0.5, 0) -- Chỉnh vị trí tùy ý Đại ca
+SpeedButton.Parent = MainFrame
+SpeedButton.Size = UDim2.new(0, 160, 0, 40)
+SpeedButton.Position = UDim2.new(0.5, -80, 0.5, -20)
 SpeedButton.Text = "Chạy Nhanh (ON)"
 
--- Biến kiểm tra
+-- Code xử lý chạy nhanh
 local isSpeedOn = false
-
 SpeedButton.MouseButton1Click:Connect(function()
     isSpeedOn = not isSpeedOn
-    
     if isSpeedOn then
         SpeedButton.Text = "Chạy Nhanh (OFF)"
-        -- Cho nhân vật chạy nhanh gấp 2 lần bình thường
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 32
     else
         SpeedButton.Text = "Chạy Nhanh (ON)"
-        -- Trả về tốc độ mặc định
         game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
     end
 end)
