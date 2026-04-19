@@ -222,12 +222,12 @@ SpeedCornerLabel.Parent = SpeedInfoLabel
 local FlyToggleBtn = createFeatureButton("FlyToggleBtn", "✈ BẬT CHẾ ĐỘ BAY")
 local FlyInfoLabel = Instance.new("TextLabel")
 FlyInfoLabel.Parent = ContentArea
-FlyInfoLabel.Size = UDim2.new(1, 0, 0, 80)
+FlyInfoLabel.Size = UDim2.new(1, 0, 0, 50)
 FlyInfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 FlyInfoLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
 FlyInfoLabel.TextSize = 12
 FlyInfoLabel.Font = Enum.Font.Gotham
-FlyInfoLabel.Text = "W/A/S/D: Di chuyển\nSpace: Bay lên\nCtrl: Bay xuống\nTốc độ: 50"
+FlyInfoLabel.Text = "💡 Sử dụng các nút bên dưới để điều khiển bay"
 FlyInfoLabel.TextWrapped = true
 FlyInfoLabel.Visible = false
 FlyInfoLabel.BorderSizePixel = 0
@@ -235,6 +235,99 @@ FlyInfoLabel.BorderSizePixel = 0
 local FlyCornerLabel = Instance.new("UICorner")
 FlyCornerLabel.CornerRadius = UDim.new(0, 6)
 FlyCornerLabel.Parent = FlyInfoLabel
+
+-- Biến cho điều khiển bay trên mobile
+local flyMoveDirection = Vector3.new(0, 0, 0)
+
+-- Container cho các nút điều khiển bay
+local FlyControlContainer = Instance.new("Frame")
+FlyControlContainer.Name = "FlyControlContainer"
+FlyControlContainer.Parent = ContentArea
+FlyControlContainer.Size = UDim2.new(1, 0, 0, 220)
+FlyControlContainer.BackgroundTransparency = 1
+FlyControlContainer.BorderSizePixel = 0
+FlyControlContainer.Visible = false
+
+-- Layout cho container
+local ControlLayout = Instance.new("UIGridLayout")
+ControlLayout.Parent = FlyControlContainer
+ControlLayout.CellSize = UDim2.new(0.33, -8, 0.5, -8)
+ControlLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+ControlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ControlLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function createFlyControlButton(text, callback)
+    local Button = Instance.new("TextButton")
+    Button.Parent = FlyControlContainer
+    Button.Size = UDim2.new(1, 0, 1, 0)
+    Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextSize = 16
+    Button.Font = Enum.Font.GothamBold
+    Button.Text = text
+    Button.BorderSizePixel = 0
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Button
+    
+    Button.MouseButton1Down:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
+        callback(true)
+    end)
+    
+    Button.MouseButton1Up:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+        callback(false)
+    end)
+    
+    Button.TouchBegan:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
+        callback(true)
+    end)
+    
+    Button.TouchEnded:Connect(function()
+        Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
+        callback(false)
+    end)
+    
+    return Button
+end
+
+-- Biến trạng thái nút
+local buttonStates = {
+    forward = false,
+    backward = false,
+    left = false,
+    right = false,
+    up = false,
+    down = false
+}
+
+-- Tạo các nút điều khiển
+local ForwardBtn = createFlyControlButton("▲ Tiến", function(pressed)
+    buttonStates.forward = pressed
+end)
+
+local LeftBtn = createFlyControlButton("◀ Trái", function(pressed)
+    buttonStates.left = pressed
+end)
+
+local RightBtn = createFlyControlButton("▶ Phải", function(pressed)
+    buttonStates.right = pressed
+end)
+
+local BackwardBtn = createFlyControlButton("▼ Lùi", function(pressed)
+    buttonStates.backward = pressed
+end)
+
+local UpBtn = createFlyControlButton("⬆ Lên", function(pressed)
+    buttonStates.up = pressed
+end)
+
+local DownBtn = createFlyControlButton("⬇ Xuống", function(pressed)
+    buttonStates.down = pressed
+end)
 
 -- ==================== FEATURE BUTTONS (Settings) ====================
 local SpeedSliderLabel = Instance.new("TextLabel")
