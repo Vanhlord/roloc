@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 -- Fallback parenting cho ScreenGui
 local function getGuiParent()
@@ -12,8 +13,8 @@ local function getGuiParent()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VNA_Menu_Fixed"
-ScreenGui.ResetOnSpawn = true
+ScreenGui.Name = "VNA_Menu_Premium"
+ScreenGui.ResetOnSpawn = true -- Mất menu khi reset nhân vật
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = getGuiParent()
@@ -35,11 +36,56 @@ MainFrame.Position = UDim2.new(0.5, -250, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 MainFrame.ZIndex = 5
-MainFrame.Active = true -- Chặn click xuyên qua
+MainFrame.Active = true
+MainFrame.Visible = false -- Ẩn đi lúc đầu để hiện loading
 
 local CornerMain = Instance.new("UICorner")
 CornerMain.CornerRadius = UDim.new(0, 10)
 CornerMain.Parent = MainFrame
+
+-- ==================== LOADING SCREEN ====================
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.Parent = ScreenGui
+LoadingFrame.Size = UDim2.new(0, 300, 0, 150)
+LoadingFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.ZIndex = 200
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 12)
+LoadingCorner.Parent = LoadingFrame
+
+local LoadingLogo = Instance.new("TextLabel")
+LoadingLogo.Parent = LoadingFrame
+LoadingLogo.Size = UDim2.new(0, 60, 0, 60)
+LoadingLogo.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingLogo.Position = UDim2.new(0.5, 0, 0.4, 0)
+LoadingLogo.BackgroundTransparency = 1
+LoadingLogo.Text = "VNA"
+LoadingLogo.TextColor3 = Color3.fromRGB(100, 200, 255)
+LoadingLogo.TextSize = 20
+LoadingLogo.Font = Enum.Font.GothamBold
+LoadingLogo.ZIndex = 201
+
+local LoadingStatus = Instance.new("TextLabel")
+LoadingStatus.Parent = LoadingFrame
+LoadingStatus.Size = UDim2.new(1, 0, 0, 30)
+LoadingStatus.Position = UDim2.new(0, 0, 0.75, 0)
+LoadingStatus.BackgroundTransparency = 1
+LoadingStatus.Text = "ĐANG KIỂM TRA CẬP NHẬT..."
+LoadingStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingStatus.TextSize = 12
+LoadingStatus.Font = Enum.Font.GothamMedium
+LoadingStatus.ZIndex = 201
+
+-- Hiệu ứng xoay logo
+local rotationConnection = RunService.RenderStepped:Connect(function(delta)
+    if LoadingLogo and LoadingLogo.Parent then
+        LoadingLogo.Rotation = LoadingLogo.Rotation + (180 * delta)
+    end
+end)
 
 -- ==================== DRAG FUNCTION ====================
 local function makeDraggable(frame, handle)
@@ -125,7 +171,7 @@ local function createTitleButton(name, text, color, pos)
     Button.TextSize = 18
     Button.Font = Enum.Font.GothamBold
     Button.Text = text
-    Button.ZIndex = 10 -- Cao nhất để ưu tiên click
+    Button.ZIndex = 10
     Button.BorderSizePixel = 0
     
     local Corner = Instance.new("UICorner")
@@ -170,7 +216,6 @@ SidebarPadding.PaddingRight = UDim.new(0, 5)
 SidebarPadding.PaddingTop = UDim.new(0, 10)
 
 -- ==================== CONTENT AREA (PHẢI) ====================
--- Chuyển sang ScrollingFrame để tránh lỗi tràn nội dung trên mobile
 local ContentArea = Instance.new("ScrollingFrame")
 ContentArea.Name = "ContentArea"
 ContentArea.Parent = BodyFrame
@@ -180,7 +225,7 @@ ContentArea.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ContentArea.BorderSizePixel = 0
 ContentArea.ZIndex = 6
 ContentArea.ScrollBarThickness = 2
-ContentArea.CanvasSize = UDim2.new(0, 0, 0, 0) -- Tự động điều chỉnh
+ContentArea.CanvasSize = UDim2.new(0, 0, 0, 0)
 ContentArea.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local ContentCorner = Instance.new("UICorner")
@@ -285,7 +330,7 @@ ControlLayout.Parent = FlyControlContainer
 ControlLayout.CellSize = UDim2.new(0.33, -5, 0.5, -5)
 ControlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- Biến trạng thái nút
+-- Biến trạng thái nút fly cho mobile
 local buttonStates = {forward = false, backward = false, left = false, right = false, up = false, down = false}
 
 local function createFlyControlButton(text, callback)
@@ -315,12 +360,12 @@ local function createFlyControlButton(text, callback)
     return Button
 end
 
-createFlyControlButton("▲ Tien", function(p) buttonStates.forward = p end)
-createFlyControlButton("◀ Trai", function(p) buttonStates.left = p end)
-createFlyControlButton("▶ Phai", function(p) buttonStates.right = p end)
-createFlyControlButton("▼ Lui", function(p) buttonStates.backward = p end)
-createFlyControlButton("⬆ Len", function(p) buttonStates.up = p end)
-createFlyControlButton("⬇ Xuong", function(p) buttonStates.down = p end)
+createFlyControlButton("▲ Tiến", function(p) buttonStates.forward = p end)
+createFlyControlButton("◀ Trái", function(p) buttonStates.left = p end)
+createFlyControlButton("▶ Phải", function(p) buttonStates.right = p end)
+createFlyControlButton("▼ Lùi", function(p) buttonStates.backward = p end)
+createFlyControlButton("⬆ Lên", function(p) buttonStates.up = p end)
+createFlyControlButton("⬇ Xuống", function(p) buttonStates.down = p end)
 
 -- ==================== SETTINGS PAGE ====================
 local SpeedSliderLabel = Instance.new("TextLabel")
@@ -346,7 +391,7 @@ InfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 InfoLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
 InfoLabel.TextSize = 10
 InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.Text = "VNA MENU SYSTEM v1.1 - FIXED\n\n📌 Chức năng:\n• Chạy Nhanh\n• Bay (PC & Mobile)\n\n💡 Hướng dẫn: Dùng nút O để ẩn"
+InfoLabel.Text = "VNA MENU SYSTEM v1.2\n\n📌 Chức năng:\n• Chạy Nhanh\n• Bay (PC & Mobile)\n\n💡 Hướng dẫn: Dùng nút O để ẩn"
 InfoLabel.TextWrapped = true
 InfoLabel.Visible = false
 InfoLabel.ZIndex = 7
@@ -432,14 +477,14 @@ SpeedToggleBtn.MouseButton1Click:Connect(function()
     if char and char:FindFirstChild("Humanoid") then
         isSpeedOn = not isSpeedOn
         char.Humanoid.WalkSpeed = isSpeedOn and 32 or 16
-        SpeedToggleBtn.Text = isSpeedOn and "⏹ TAT CHAY NHANH" or "▶ BAT CHAY NHANH"
+        SpeedToggleBtn.Text = isSpeedOn and "⏹ TẮT CHẠY NHANH" or "▶ BẬT CHẠY NHANH"
         SpeedToggleBtn.BackgroundColor3 = isSpeedOn and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
     end
 end)
 
 FlyToggleBtn.MouseButton1Click:Connect(function()
     isFlying = not isFlying
-    FlyToggleBtn.Text = isFlying and "⏹ TAT CHE DO BAY" or "✈ BAT CHE DO BAY"
+    FlyToggleBtn.Text = isFlying and "⏹ TẮT CHẾ ĐỘ BAY" or "✈ BẬT CHẾ ĐỘ BAY"
     FlyToggleBtn.BackgroundColor3 = isFlying and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
     if isFlying then startFlying() else stopFlying() end
 end)
@@ -472,6 +517,30 @@ ReloadScriptBtn.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
 end)
 
-ScreenGui.ResetOnSpawn = true
-
+-- ==================== KHỞI TẠO & TRANSITION ====================
 showPage("Speed")
+
+task.spawn(function()
+    task.wait(2.5)
+    LoadingStatus.Text = "CẬP NHẬT THÀNH CÔNG!"
+    LoadingStatus.TextColor3 = Color3.fromRGB(100, 255, 150)
+    LoadingLogo.TextColor3 = Color3.fromRGB(100, 255, 150)
+    
+    task.wait(0.8)
+    
+    if rotationConnection then rotationConnection:Disconnect() end
+    
+    local fadeInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    
+    local tween = TweenService:Create(LoadingFrame, fadeInfo, {BackgroundTransparency = 1})
+    TweenService:Create(LoadingLogo, fadeInfo, {TextTransparency = 1}):Play()
+    TweenService:Create(LoadingStatus, fadeInfo, {TextTransparency = 1}):Play()
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        LoadingFrame:Destroy()
+        MainFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 480, 0, 310)
+        TweenService:Create(MainFrame, fadeInfo, {Size = UDim2.new(0, 500, 0, 330)}):Play()
+    end)
+end)
