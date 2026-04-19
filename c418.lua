@@ -1,6 +1,7 @@
 --[[
-    VNA LITE - BOOTSTRAPPER EDITION
+    VNA LITE - SLIDER EDITION
     Actually fetches the latest script from GitHub.
+    Now with a 0-999 Speed Slider!
 ]]
 
 local GITHUB_URL = "https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"
@@ -22,9 +23,8 @@ end
 
 -- ==================== BOOTSTRAPPER CHECK ====================
 if not _G.VNA_BOOTSTRAPPED and not DEV_MODE then
-    _G.VNA_BOOTSTRAPPED = true -- Flag to let the next run know it's the real one
+    _G.VNA_BOOTSTRAPPED = true
     
-    -- Create temporary Startup UI
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "VNA_Loader"
     ScreenGui.DisplayOrder = 999999
@@ -60,7 +60,6 @@ if not _G.VNA_BOOTSTRAPPED and not DEV_MODE then
     SyncText.TextSize = 10
     SyncText.Font = Enum.Font.GothamMedium
     
-    -- Simple spin/pulse animation
     task.spawn(function()
         local count = 0
         while StartupFrame and StartupFrame.Parent do
@@ -70,7 +69,6 @@ if not _G.VNA_BOOTSTRAPPED and not DEV_MODE then
         end
     end)
     
-    -- Actual fetch
     local success, result = pcall(function()
         return game:HttpGet(GITHUB_URL)
     end)
@@ -79,37 +77,33 @@ if not _G.VNA_BOOTSTRAPPED and not DEV_MODE then
         SyncText.Text = "CLIENT LOADED!"
         SyncText.TextColor3 = Color3.fromRGB(100, 255, 150)
         task.wait(0.5)
-        loadstring(result)() -- Execute the remote code
+        loadstring(result)() 
     else
         SyncText.Text = "SYNC FAILED! RUNNING LOCAL..."
         SyncText.TextColor3 = Color3.fromRGB(255, 100, 100)
         task.wait(1)
         _G.VNA_BOOTSTRAPPED = false
-        -- Fallback: proceed with local script logic
     end
     
-    -- If successful, loadstring() will run the code below in a DIFFERENT thread.
-    -- We must STOP this thread here.
     if success then return end 
 end
 
--- Clear flag for next manual run
 _G.VNA_BOOTSTRAPPED = false
 
--- ==================== MAIN SCRIPT LOGIC (THE "REAL" ONE) ====================
+-- ==================== MAIN SCRIPT LOGIC ====================
 
--- Cleanup previous loader if it exists
 local OldLoader = getGuiParent():FindFirstChild("VNA_Loader")
 if OldLoader then OldLoader:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VNA_Lite_Final"
+ScreenGui.Name = "VNA_Lite_Slider"
 ScreenGui.ResetOnSpawn = true
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = getGuiParent()
 
 local isSpeedEnabled = false
+local currentSpeedValue = 100 -- Default value for the slider
 
 -- Ready Animation Frame
 local ReadyFrame = Instance.new("Frame")
@@ -133,8 +127,8 @@ ReadyLogo.Font = Enum.Font.GothamBold
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 300, 0, 180)
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
+MainFrame.Size = UDim2.new(0, 300, 0, 240) -- Increased height for slider
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -120)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = false
@@ -177,7 +171,7 @@ local function createTitleBtn(text, color, pos, callback)
     return Btn
 end
 
-local MinimizedIcon = Instance.new("TextButton") -- Forward dec
+local MinimizedIcon = Instance.new("TextButton") 
 local CloseBtn = createTitleBtn("✕", Color3.fromRGB(200, 60, 60), UDim2.new(1, -35, 0.5, -15), function() ScreenGui:Destroy() end)
 local HideBtn = createTitleBtn("◯", Color3.fromRGB(50, 100, 150), UDim2.new(1, -70, 0.5, -15), function()
     MainFrame.Visible = false
@@ -205,12 +199,12 @@ makeDraggable(MainFrame, TitleBar)
 -- Speed Button
 local SpeedBtn = Instance.new("TextButton")
 SpeedBtn.Parent = MainFrame
-SpeedBtn.Size = UDim2.new(0.8, 0, 0, 60)
-SpeedBtn.Position = UDim2.new(0.5, 0, 0.65, 0)
+SpeedBtn.Size = UDim2.new(0.8, 0, 0, 50)
+SpeedBtn.Position = UDim2.new(0.5, 0, 0, 80) -- Adjusted position
 SpeedBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 SpeedBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 SpeedBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-SpeedBtn.TextSize = 16
+SpeedBtn.TextSize = 14
 SpeedBtn.Font = Enum.Font.GothamBold
 SpeedBtn.Text = "BAT CHAY NHANH"
 SpeedBtn.BorderSizePixel = 0
@@ -223,7 +217,7 @@ SpeedBtn.MouseButton1Click:Connect(function()
     isSpeedEnabled = not isSpeedEnabled
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = isSpeedEnabled and 32 or 16
+        char.Humanoid.WalkSpeed = isSpeedEnabled and currentSpeedValue or 16
     end
     local targetColor = isSpeedEnabled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(40, 40, 40)
     local targetText = isSpeedEnabled and "TAT CHAY NHANH" or "BAT CHAY NHANH"
@@ -232,7 +226,84 @@ SpeedBtn.MouseButton1Click:Connect(function()
     SpeedBtn.Text = targetText
 end)
 
--- Minimized Icon
+-- ==================== SPEED SLIDER ====================
+local SliderContainer = Instance.new("Frame")
+SliderContainer.Parent = MainFrame
+SliderContainer.Size = UDim2.new(0.8, 0, 0, 70)
+SliderContainer.Position = UDim2.new(0.5, 0, 0, 165)
+SliderContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+SliderContainer.BackgroundTransparency = 1
+
+local ValueLabel = Instance.new("TextLabel")
+ValueLabel.Parent = SliderContainer
+ValueLabel.Size = UDim2.new(1, 0, 0, 20)
+ValueLabel.Position = UDim2.new(0, 0, 0, 0)
+ValueLabel.BackgroundTransparency = 1
+ValueLabel.Text = "TỐC ĐỘ: " .. currentSpeedValue
+ValueLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+ValueLabel.TextSize = 12
+ValueLabel.Font = Enum.Font.GothamMedium
+
+local SliderBar = Instance.new("Frame")
+SliderBar.Parent = SliderContainer
+SliderBar.Size = UDim2.new(1, 0, 0, 10)
+SliderBar.Position = UDim2.new(0, 0, 0, 35)
+SliderBar.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SliderBar.BorderSizePixel = 0
+Instance.new("UICorner", SliderBar).CornerRadius = UDim.new(1, 0)
+
+local SliderFill = Instance.new("Frame")
+SliderFill.Parent = SliderBar
+SliderFill.Size = UDim2.new(currentSpeedValue/999, 0, 1, 0)
+SliderFill.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
+SliderFill.BorderSizePixel = 0
+Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+
+local SliderThumb = Instance.new("Frame")
+SliderThumb.Parent = SliderBar
+SliderThumb.Size = UDim2.new(0, 18, 0, 18)
+SliderThumb.Position = UDim2.new(currentSpeedValue/999, 0, 0.5, 0)
+SliderThumb.AnchorPoint = Vector2.new(0.5, 0.5)
+SliderThumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+SliderThumb.BorderSizePixel = 0
+Instance.new("UICorner", SliderThumb).CornerRadius = UDim.new(1, 0)
+
+local dragging = false
+local function updateSlider(input)
+    local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+    SliderThumb.Position = UDim2.new(pos, 0, 0.5, 0)
+    SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+    
+    currentSpeedValue = math.floor(pos * 999)
+    ValueLabel.Text = "TỐC ĐỘ: " .. currentSpeedValue
+    
+    if isSpeedEnabled then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = currentSpeedValue
+        end
+    end
+end
+
+SliderThumb.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        updateSlider(input)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+-- ==================== MINIMIZED ICON ====================
 MinimizedIcon.Name = "MinimizedIcon"
 MinimizedIcon.Parent = ScreenGui
 MinimizedIcon.Size = UDim2.new(0, 50, 0, 50)
@@ -259,6 +330,6 @@ fadeOut:Play()
 fadeOut.Completed:Connect(function()
     ReadyFrame:Destroy()
     MainFrame.Visible = true
-    MainFrame.Size = UDim2.new(0, 280, 0, 160)
-    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 180)}):Play()
+    MainFrame.Size = UDim2.new(0, 280, 0, 220)
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 240)}):Play()
 end)
