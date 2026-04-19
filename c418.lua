@@ -258,6 +258,9 @@ DecreaseSpeedBtn.Visible = false
 local IncreaseSpeedBtn = createFeatureButton("IncreaseSpeedBtn", "+ Tăng Tốc Độ")
 IncreaseSpeedBtn.Visible = false
 
+local ReloadScriptBtn = createFeatureButton("ReloadScriptBtn", "🔄 Tải Phiên Bản Mới")
+ReloadScriptBtn.Visible = false
+
 -- ==================== FEATURE BUTTONS (Info) ====================
 local InfoLabel = Instance.new("TextLabel")
 InfoLabel.Parent = ContentArea
@@ -307,6 +310,7 @@ local function showPage(pageName)
         SpeedSliderLabel.Visible = true
         DecreaseSpeedBtn.Visible = true
         IncreaseSpeedBtn.Visible = true
+        ReloadScriptBtn.Visible = true
         SettingsPageBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
     elseif pageName == "Info" then
         InfoLabel.Visible = true
@@ -435,6 +439,21 @@ IncreaseSpeedBtn.MouseButton1Click:Connect(function()
 end)
 
 SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
+
+-- ==================== RELOAD SCRIPT ====================
+ReloadScriptBtn.MouseButton1Click:Connect(function()
+    ReloadScriptBtn.Text = "⏳ ĐANG TẢI..."
+    ReloadScriptBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
+    
+    if isFlying then
+        isFlying = false
+        stopFlying()
+    end
+    
+    task.wait(1)
+    ScreenGui:Destroy()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
+end)
 
 -- ==================== NÚT ẨN MENU ====================
 local MinimizedIcon = Instance.new("TextButton")
