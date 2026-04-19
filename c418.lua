@@ -1,14 +1,24 @@
 -- Tạo cái GUI chứa nút
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MyMenu"
-ScreenGui.Parent = game.CoreGui
-
--- Biến trạng thái
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
+-- Fallback parenting cho ScreenGui
+local function getGuiParent()
+    local success, gui = pcall(function() return (gethui and gethui()) or game:GetService("CoreGui") or LocalPlayer:WaitForChild("PlayerGui") end)
+    if success then return gui end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "VNA_Menu_Fixed"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = getGuiParent()
+
+-- Biến trạng thái
 local isMenuVisible = true
 local isSpeedOn = false
 local isFlying = false
@@ -24,6 +34,8 @@ MainFrame.Size = UDim2.new(0, 500, 0, 330)
 MainFrame.Position = UDim2.new(0.5, -250, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
+MainFrame.ZIndex = 5
+MainFrame.Active = true -- Chặn click xuyên qua
 
 local CornerMain = Instance.new("UICorner")
 CornerMain.CornerRadius = UDim.new(0, 10)
@@ -69,12 +81,12 @@ TitleBar.Parent = MainFrame
 TitleBar.Size = UDim2.new(1, 0, 0, 50)
 TitleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 6
 
 local CornerTitle = Instance.new("UICorner")
 CornerTitle.CornerRadius = UDim.new(0, 10)
 CornerTitle.Parent = TitleBar
 
--- Gọi hàm kéo cho TitleBar
 makeDraggable(MainFrame, TitleBar)
 
 -- Logo VNA
@@ -87,8 +99,9 @@ LogoText.Text = "VNA"
 LogoText.TextColor3 = Color3.fromRGB(100, 200, 255)
 LogoText.TextSize = 24
 LogoText.Font = Enum.Font.GothamBold
+LogoText.ZIndex = 7
 
--- Title Text ở giữa
+-- Title Text
 local TitleText = Instance.new("TextLabel")
 TitleText.Parent = TitleBar
 TitleText.Size = UDim2.new(1, -200, 1, 0)
@@ -98,40 +111,32 @@ TitleText.Text = "⚙️ MENU SYSTEM"
 TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleText.TextSize = 18
 TitleText.Font = Enum.Font.GothamBold
+TitleText.ZIndex = 7
 
--- Nút ẩn menu (O)
-local HideButton = Instance.new("TextButton")
-HideButton.Name = "HideButton"
-HideButton.Parent = TitleBar
-HideButton.Size = UDim2.new(0, 35, 0, 35)
-HideButton.Position = UDim2.new(1, -77, 0.5, -17)
-HideButton.BackgroundColor3 = Color3.fromRGB(50, 100, 150)
-HideButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-HideButton.TextSize = 16
-HideButton.Font = Enum.Font.GothamBold
-HideButton.Text = "◯"
-HideButton.BorderSizePixel = 0
+-- Helper để tạo nút Title
+local function createTitleButton(name, text, color, pos)
+    local Button = Instance.new("TextButton")
+    Button.Name = name
+    Button.Parent = TitleBar
+    Button.Size = UDim2.new(0, 35, 0, 35)
+    Button.Position = pos
+    Button.BackgroundColor3 = color
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextSize = 18
+    Button.Font = Enum.Font.GothamBold
+    Button.Text = text
+    Button.ZIndex = 10 -- Cao nhất để ưu tiên click
+    Button.BorderSizePixel = 0
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Button
+    
+    return Button
+end
 
-local CornerHide = Instance.new("UICorner")
-CornerHide.CornerRadius = UDim.new(0, 6)
-CornerHide.Parent = HideButton
-
--- Nút đóng menu (X)
-local CloseButton = Instance.new("TextButton")
-CloseButton.Name = "CloseButton"
-CloseButton.Parent = TitleBar
-CloseButton.Size = UDim2.new(0, 35, 0, 35)
-CloseButton.Position = UDim2.new(1, -37, 0.5, -17)
-CloseButton.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
-CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseButton.TextSize = 18
-CloseButton.Font = Enum.Font.GothamBold
-CloseButton.Text = "✕"
-CloseButton.BorderSizePixel = 0
-
-local CornerClose = Instance.new("UICorner")
-CornerClose.CornerRadius = UDim.new(0, 6)
-CornerClose.Parent = CloseButton
+local HideButton = createTitleButton("HideButton", "◯", Color3.fromRGB(50, 100, 150), UDim2.new(1, -77, 0.5, -17))
+local CloseButton = createTitleButton("CloseButton", "✕", Color3.fromRGB(200, 60, 60), UDim2.new(1, -37, 0.5, -17))
 
 -- ==================== BODY FRAME ====================
 local BodyFrame = Instance.new("Frame")
@@ -140,73 +145,70 @@ BodyFrame.Parent = MainFrame
 BodyFrame.Size = UDim2.new(1, 0, 1, -50)
 BodyFrame.Position = UDim2.new(0, 0, 0, 50)
 BodyFrame.BackgroundTransparency = 1
-BodyFrame.BorderSizePixel = 0
+BodyFrame.ZIndex = 5
 
 -- ==================== SIDEBAR (TRÁI) ====================
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
 Sidebar.Parent = BodyFrame
-Sidebar.Size = UDim2.new(0, 150, 1, 0)
+Sidebar.Size = UDim2.new(0, 130, 1, 0)
 Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Sidebar.BorderSizePixel = 0
+Sidebar.ZIndex = 6
 
 local SidebarCorner = Instance.new("UICorner")
 SidebarCorner.CornerRadius = UDim.new(0, 8)
 SidebarCorner.Parent = Sidebar
 
--- UIListLayout cho Sidebar
 local SidebarLayout = Instance.new("UIListLayout")
 SidebarLayout.Parent = Sidebar
 SidebarLayout.Padding = UDim.new(0, 5)
-SidebarLayout.FillDirection = Enum.FillDirection.Vertical
-SidebarLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 local SidebarPadding = Instance.new("UIPadding")
 SidebarPadding.Parent = Sidebar
-SidebarPadding.PaddingLeft = UDim.new(0, 10)
-SidebarPadding.PaddingRight = UDim.new(0, 10)
+SidebarPadding.PaddingLeft = UDim.new(0, 5)
+SidebarPadding.PaddingRight = UDim.new(0, 5)
 SidebarPadding.PaddingTop = UDim.new(0, 10)
-SidebarPadding.PaddingBottom = UDim.new(0, 10)
 
 -- ==================== CONTENT AREA (PHẢI) ====================
-local ContentArea = Instance.new("Frame")
+-- Chuyển sang ScrollingFrame để tránh lỗi tràn nội dung trên mobile
+local ContentArea = Instance.new("ScrollingFrame")
 ContentArea.Name = "ContentArea"
 ContentArea.Parent = BodyFrame
-ContentArea.Size = UDim2.new(1, -160, 1, 0)
-ContentArea.Position = UDim2.new(0, 160, 0, 0)
+ContentArea.Size = UDim2.new(1, -140, 1, -10)
+ContentArea.Position = UDim2.new(0, 135, 0, 5)
 ContentArea.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 ContentArea.BorderSizePixel = 0
+ContentArea.ZIndex = 6
+ContentArea.ScrollBarThickness = 2
+ContentArea.CanvasSize = UDim2.new(0, 0, 0, 0) -- Tự động điều chỉnh
+ContentArea.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local ContentCorner = Instance.new("UICorner")
 ContentCorner.CornerRadius = UDim.new(0, 8)
 ContentCorner.Parent = ContentArea
 
--- UIListLayout cho Content
 local ContentLayout = Instance.new("UIListLayout")
 ContentLayout.Parent = ContentArea
-ContentLayout.Padding = UDim.new(0, 12)
-ContentLayout.FillDirection = Enum.FillDirection.Vertical
-ContentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+ContentLayout.Padding = UDim.new(0, 10)
+ContentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local ContentPadding = Instance.new("UIPadding")
 ContentPadding.Parent = ContentArea
-ContentPadding.PaddingLeft = UDim.new(0, 20)
-ContentPadding.PaddingRight = UDim.new(0, 20)
-ContentPadding.PaddingTop = UDim.new(0, 20)
-ContentPadding.PaddingBottom = UDim.new(0, 20)
+ContentPadding.PaddingTop = UDim.new(0, 15)
+ContentPadding.PaddingBottom = UDim.new(0, 15)
 
 -- ==================== HÀM TẠO NÚT ====================
 local function createSidebarButton(name, text)
     local Button = Instance.new("TextButton")
     Button.Name = name
     Button.Parent = Sidebar
-    Button.Size = UDim2.new(1, 0, 0, 40)
+    Button.Size = UDim2.new(1, 0, 0, 35)
     Button.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     Button.TextColor3 = Color3.fromRGB(200, 200, 200)
-    Button.TextSize = 12
+    Button.TextSize = 11
     Button.Font = Enum.Font.Gotham
+    Button.ZIndex = 7
     Button.Text = text
-    Button.BorderSizePixel = 0
     
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 5)
@@ -219,13 +221,13 @@ local function createFeatureButton(name, text)
     local Button = Instance.new("TextButton")
     Button.Name = name
     Button.Parent = ContentArea
-    Button.Size = UDim2.new(1, 0, 0, 50)
+    Button.Size = UDim2.new(0.9, 0, 0, 45)
     Button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 14
+    Button.TextSize = 13
     Button.Font = Enum.Font.Gotham
+    Button.ZIndex = 7
     Button.Text = text
-    Button.BorderSizePixel = 0
     Button.Visible = false
     
     local Corner = Instance.new("UICorner")
@@ -241,213 +243,135 @@ local FlyPageBtn = createSidebarButton("FlyPageBtn", "✈ Bay")
 local SettingsPageBtn = createSidebarButton("SettingsPageBtn", "⚙️ Cài Đặt")
 local InfoPageBtn = createSidebarButton("InfoPageBtn", "ℹ️ Thông Tin")
 
--- ==================== FEATURE BUTTONS (Chạy Nhanh) ====================
+-- ==================== SPEED PAGE ====================
 local SpeedToggleBtn = createFeatureButton("SpeedToggleBtn", "▶ BẬT CHẠY NHANH")
 local SpeedInfoLabel = Instance.new("TextLabel")
 SpeedInfoLabel.Parent = ContentArea
-SpeedInfoLabel.Size = UDim2.new(1, 0, 0, 60)
-SpeedInfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SpeedInfoLabel.Size = UDim2.new(0.9, 0, 0, 50)
+SpeedInfoLabel.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 SpeedInfoLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
-SpeedInfoLabel.TextSize = 12
+SpeedInfoLabel.TextSize = 11
 SpeedInfoLabel.Font = Enum.Font.Gotham
-SpeedInfoLabel.Text = "Tốc độ mặc định: 16\nTốc độ khi bật: 32\nNhấp nút để bật/tắt"
-SpeedInfoLabel.TextWrapped = true
+SpeedInfoLabel.Text = "Tốc độ: 16 -> 32\nBấm nút để thay đổi"
+SpeedInfoLabel.ZIndex = 7
 SpeedInfoLabel.Visible = false
-SpeedInfoLabel.BorderSizePixel = 0
 
-local SpeedCornerLabel = Instance.new("UICorner")
-SpeedCornerLabel.CornerRadius = UDim.new(0, 6)
-SpeedCornerLabel.Parent = SpeedInfoLabel
+local SC = Instance.new("UICorner")
+SC.CornerRadius = UDim.new(0, 6)
+SC.Parent = SpeedInfoLabel
 
--- ==================== FEATURE BUTTONS (Bay) ====================
+-- ==================== FLY PAGE ====================
 local FlyToggleBtn = createFeatureButton("FlyToggleBtn", "✈ BẬT CHẾ ĐỘ BAY")
 local FlyInfoLabel = Instance.new("TextLabel")
 FlyInfoLabel.Parent = ContentArea
-FlyInfoLabel.Size = UDim2.new(1, 0, 0, 50)
-FlyInfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+FlyInfoLabel.Size = UDim2.new(0.9, 0, 0, 40)
+FlyInfoLabel.BackgroundTransparency = 1
 FlyInfoLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
-FlyInfoLabel.TextSize = 12
+FlyInfoLabel.TextSize = 11
 FlyInfoLabel.Font = Enum.Font.Gotham
-FlyInfoLabel.Text = "💡 Sử dụng các nút bên dưới để điều khiển bay"
-FlyInfoLabel.TextWrapped = true
+FlyInfoLabel.Text = "💡 Dùng các nút bên dưới để điều khiển"
+FlyInfoLabel.ZIndex = 7
 FlyInfoLabel.Visible = false
-FlyInfoLabel.BorderSizePixel = 0
 
-local FlyCornerLabel = Instance.new("UICorner")
-FlyCornerLabel.CornerRadius = UDim.new(0, 6)
-FlyCornerLabel.Parent = FlyInfoLabel
-
--- Biến cho điều khiển bay trên mobile
-local flyMoveDirection = Vector3.new(0, 0, 0)
-
--- Container cho các nút điều khiển bay
 local FlyControlContainer = Instance.new("Frame")
-FlyControlContainer.Name = "FlyControlContainer"
 FlyControlContainer.Parent = ContentArea
-FlyControlContainer.Size = UDim2.new(1, 0, 0, 180)
+FlyControlContainer.Size = UDim2.new(1, 0, 0, 160)
 FlyControlContainer.BackgroundTransparency = 1
-FlyControlContainer.BorderSizePixel = 0
 FlyControlContainer.Visible = false
+FlyControlContainer.ZIndex = 7
 
--- Layout cho container
 local ControlLayout = Instance.new("UIGridLayout")
 ControlLayout.Parent = FlyControlContainer
-ControlLayout.CellSize = UDim2.new(0.33, -8, 0.5, -8)
-ControlLayout.CellPadding = UDim2.new(0, 8, 0, 8)
+ControlLayout.CellSize = UDim2.new(0.33, -5, 0.5, -5)
 ControlLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-ControlLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+-- Biến trạng thái nút
+local buttonStates = {forward = false, backward = false, left = false, right = false, up = false, down = false}
 
 local function createFlyControlButton(text, callback)
     local Button = Instance.new("TextButton")
     Button.Parent = FlyControlContainer
-    Button.Size = UDim2.new(1, 0, 1, 0)
     Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
     Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Button.TextSize = 16
+    Button.TextSize = 14
     Button.Font = Enum.Font.GothamBold
     Button.Text = text
-    Button.BorderSizePixel = 0
+    Button.ZIndex = 8
     
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 6)
     Corner.Parent = Button
     
-    Button.MouseButton1Down:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
-        callback(true)
-    end)
+    local function set(p) 
+        Button.BackgroundColor3 = p and Color3.fromRGB(100, 150, 200) or Color3.fromRGB(60, 80, 100)
+        callback(p) 
+    end
     
-    Button.MouseButton1Up:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
-        callback(false)
-    end)
-    
-    Button.TouchBegan:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(100, 150, 200)
-        callback(true)
-    end)
-    
-    Button.TouchEnded:Connect(function()
-        Button.BackgroundColor3 = Color3.fromRGB(60, 80, 100)
-        callback(false)
-    end)
+    Button.MouseButton1Down:Connect(function() set(true) end)
+    Button.MouseButton1Up:Connect(function() set(false) end)
+    Button.TouchBegan:Connect(function() set(true) end)
+    Button.TouchEnded:Connect(function() set(false) end)
     
     return Button
 end
 
--- Biến trạng thái nút
-local buttonStates = {
-    forward = false,
-    backward = false,
-    left = false,
-    right = false,
-    up = false,
-    down = false
-}
+createFlyControlButton("▲ Tien", function(p) buttonStates.forward = p end)
+createFlyControlButton("◀ Trai", function(p) buttonStates.left = p end)
+createFlyControlButton("▶ Phai", function(p) buttonStates.right = p end)
+createFlyControlButton("▼ Lui", function(p) buttonStates.backward = p end)
+createFlyControlButton("⬆ Len", function(p) buttonStates.up = p end)
+createFlyControlButton("⬇ Xuong", function(p) buttonStates.down = p end)
 
--- Tạo các nút điều khiển
-local ForwardBtn = createFlyControlButton("▲ Tiến", function(pressed)
-    buttonStates.forward = pressed
-end)
-
-local LeftBtn = createFlyControlButton("◀ Trái", function(pressed)
-    buttonStates.left = pressed
-end)
-
-local RightBtn = createFlyControlButton("▶ Phải", function(pressed)
-    buttonStates.right = pressed
-end)
-
-local BackwardBtn = createFlyControlButton("▼ Lùi", function(pressed)
-    buttonStates.backward = pressed
-end)
-
-local UpBtn = createFlyControlButton("⬆ Lên", function(pressed)
-    buttonStates.up = pressed
-end)
-
-local DownBtn = createFlyControlButton("⬇ Xuống", function(pressed)
-    buttonStates.down = pressed
-end)
-
--- ==================== FEATURE BUTTONS (Settings) ====================
+-- ==================== SETTINGS PAGE ====================
 local SpeedSliderLabel = Instance.new("TextLabel")
 SpeedSliderLabel.Parent = ContentArea
-SpeedSliderLabel.Size = UDim2.new(1, 0, 0, 50)
+SpeedSliderLabel.Size = UDim2.new(0.9, 0, 0, 40)
 SpeedSliderLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 SpeedSliderLabel.TextColor3 = Color3.fromRGB(255, 150, 150)
-SpeedSliderLabel.TextSize = 12
+SpeedSliderLabel.TextSize = 11
 SpeedSliderLabel.Font = Enum.Font.Gotham
-SpeedSliderLabel.Text = "⚙️ Tùy chỉnh tốc độ bay"
+SpeedSliderLabel.Text = "Tốc độ bay: " .. flySpeed
+SpeedSliderLabel.ZIndex = 7
 SpeedSliderLabel.Visible = false
-SpeedSliderLabel.BorderSizePixel = 0
-
-local SettingsCorner = Instance.new("UICorner")
-SettingsCorner.CornerRadius = UDim.new(0, 6)
-SettingsCorner.Parent = SpeedSliderLabel
 
 local DecreaseSpeedBtn = createFeatureButton("DecreaseSpeedBtn", "- Giảm Tốc Độ")
-DecreaseSpeedBtn.Visible = false
-
 local IncreaseSpeedBtn = createFeatureButton("IncreaseSpeedBtn", "+ Tăng Tốc Độ")
-IncreaseSpeedBtn.Visible = false
+local ReloadScriptBtn = createFeatureButton("ReloadScriptBtn", "🔄 Tải Lại Script")
 
-local ReloadScriptBtn = createFeatureButton("ReloadScriptBtn", "🔄 Tải Phiên Bản Mới")
-ReloadScriptBtn.Visible = false
-
--- ==================== FEATURE BUTTONS (Info) ====================
+-- ==================== INFO PAGE ====================
 local InfoLabel = Instance.new("TextLabel")
 InfoLabel.Parent = ContentArea
-InfoLabel.Size = UDim2.new(1, 0, 0, 150)
+InfoLabel.Size = UDim2.new(0.9, 0, 0, 120)
 InfoLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 InfoLabel.TextColor3 = Color3.fromRGB(100, 255, 150)
-InfoLabel.TextSize = 11
+InfoLabel.TextSize = 10
 InfoLabel.Font = Enum.Font.Gotham
-InfoLabel.Text = "VNA MENU SYSTEM v1.0\n\n📌 Các chức năng:\n• Chạy Nhanh: Tăng tốc độ di chuyển\n• Bay: Cho phép bay tự do\n\n💡 Gợi ý: Sử dụng nút ◯ để ẩn menu"
+InfoLabel.Text = "VNA MENU SYSTEM v1.1 - FIXED\n\n📌 Chức năng:\n• Chạy Nhanh\n• Bay (PC & Mobile)\n\n💡 Hướng dẫn: Dùng nút O để ẩn"
 InfoLabel.TextWrapped = true
 InfoLabel.Visible = false
-InfoLabel.BorderSizePixel = 0
+InfoLabel.ZIndex = 7
 
-local InfoCorner = Instance.new("UICorner")
-InfoCorner.CornerRadius = UDim.new(0, 6)
-InfoCorner.Parent = InfoLabel
-
--- ==================== HÀM XỬ LÝ TRANG ====================
+-- ==================== LOGIC HÀM ====================
 local function showPage(pageName)
     currentPage = pageName
-    
-    -- Ẩn tất cả
-    SpeedToggleBtn.Visible = false
-    SpeedInfoLabel.Visible = false
-    FlyToggleBtn.Visible = false
-    FlyInfoLabel.Visible = false
-    FlyControlContainer.Visible = false
-    SpeedSliderLabel.Visible = false
-    DecreaseSpeedBtn.Visible = false
-    IncreaseSpeedBtn.Visible = false
-    ReloadScriptBtn.Visible = false
+    SpeedToggleBtn.Visible = false; SpeedInfoLabel.Visible = false
+    FlyToggleBtn.Visible = false; FlyInfoLabel.Visible = false; FlyControlContainer.Visible = false
+    SpeedSliderLabel.Visible = false; DecreaseSpeedBtn.Visible = false; IncreaseSpeedBtn.Visible = false; ReloadScriptBtn.Visible = false
     InfoLabel.Visible = false
     
-    -- Reset màu sidebar
     SpeedPageBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     FlyPageBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     SettingsPageBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     InfoPageBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     
     if pageName == "Speed" then
-        SpeedToggleBtn.Visible = true
-        SpeedInfoLabel.Visible = true
+        SpeedToggleBtn.Visible = true; SpeedInfoLabel.Visible = true
         SpeedPageBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
     elseif pageName == "Fly" then
-        FlyToggleBtn.Visible = true
-        FlyInfoLabel.Visible = true
-        FlyControlContainer.Visible = true
+        FlyToggleBtn.Visible = true; FlyInfoLabel.Visible = true; FlyControlContainer.Visible = true
         FlyPageBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
     elseif pageName == "Settings" then
-        SpeedSliderLabel.Visible = true
-        DecreaseSpeedBtn.Visible = true
-        IncreaseSpeedBtn.Visible = true
-        ReloadScriptBtn.Visible = true
+        SpeedSliderLabel.Visible = true; DecreaseSpeedBtn.Visible = true; IncreaseSpeedBtn.Visible = true; ReloadScriptBtn.Visible = true
         SettingsPageBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
     elseif pageName == "Info" then
         InfoLabel.Visible = true
@@ -455,49 +379,25 @@ local function showPage(pageName)
     end
 end
 
--- ==================== SIDEBAR CLICK EVENTS ====================
-SpeedPageBtn.MouseButton1Click:Connect(function()
-    showPage("Speed")
-end)
-
-FlyPageBtn.MouseButton1Click:Connect(function()
-    showPage("Fly")
-end)
-
-SettingsPageBtn.MouseButton1Click:Connect(function()
-    showPage("Settings")
-end)
-
-InfoPageBtn.MouseButton1Click:Connect(function()
-    showPage("Info")
-end)
-
--- ==================== HÀM XỬ LÝ BAY ====================
 local function stopFlying()
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    
+    if flyConnection then flyConnection:Disconnect(); flyConnection = nil end
     local character = LocalPlayer.Character
     if character then
         local rootPart = character:FindFirstChild("HumanoidRootPart")
         if rootPart then
-            local bv = rootPart:FindFirstChild("VNABodyVelocity") or rootPart:FindFirstChild("BodyVelocity")
+            local bv = rootPart:FindFirstChild("VNABodyVelocity")
             if bv then bv:Destroy() end
         end
     end
 end
 
 local function startFlying()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    local rootPart = character:WaitForChild("HumanoidRootPart")
+    local character = LocalPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
     
-    if not humanoid or not rootPart then return end
-    
-    stopFlying() -- Đảm bảo không có body velocity cũ
-    
+    stopFlying()
     local bodyVelocity = Instance.new("BodyVelocity")
     bodyVelocity.Name = "VNABodyVelocity"
     bodyVelocity.Velocity = Vector3.new(0, 0, 0)
@@ -505,117 +405,53 @@ local function startFlying()
     bodyVelocity.Parent = rootPart
     
     flyConnection = RunService.RenderStepped:Connect(function()
-        if not isFlying then 
-            stopFlying()
-            return 
-        end
-        
+        if not isFlying then stopFlying(); return end
         local camera = workspace.CurrentCamera
-        local moveDirection = Vector3.new(0, 0, 0)
+        local md = Vector3.new(0, 0, 0)
         
-        -- Keyboard & Mobile Support
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) or buttonStates.forward then
-            moveDirection = moveDirection + camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) or buttonStates.backward then
-            moveDirection = moveDirection - camera.CFrame.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) or buttonStates.left then
-            moveDirection = moveDirection - camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) or buttonStates.right then
-            moveDirection = moveDirection + camera.CFrame.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) or buttonStates.up then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or buttonStates.down then
-            moveDirection = moveDirection - Vector3.new(0, 1, 0)
-        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or buttonStates.forward then md = md + camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) or buttonStates.backward then md = md - camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or buttonStates.left then md = md - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) or buttonStates.right then md = md + camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) or buttonStates.up then md = md + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or buttonStates.down then md = md - Vector3.new(0, 1, 0) end
         
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit
-        end
-        
-        bodyVelocity.Velocity = moveDirection * flySpeed
+        if md.Magnitude > 0 then md = md.Unit end
+        bodyVelocity.Velocity = md * flySpeed
     end)
 end
 
--- ==================== HÀM XỬ LÝ CHẠY NHANH ====================
+-- ==================== EVENTS ====================
+SpeedPageBtn.MouseButton1Click:Connect(function() showPage("Speed") end)
+FlyPageBtn.MouseButton1Click:Connect(function() showPage("Fly") end)
+SettingsPageBtn.MouseButton1Click:Connect(function() showPage("Settings") end)
+InfoPageBtn.MouseButton1Click:Connect(function() showPage("Info") end)
+
 SpeedToggleBtn.MouseButton1Click:Connect(function()
-    local character = LocalPlayer.Character
-    if character and character:FindFirstChild("Humanoid") then
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
         isSpeedOn = not isSpeedOn
-        if isSpeedOn then
-            SpeedToggleBtn.Text = "⏹ TẮT CHẠY NHANH"
-            SpeedToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-            character.Humanoid.WalkSpeed = 32
-        else
-            SpeedToggleBtn.Text = "▶ BẬT CHẠY NHANH"
-            SpeedToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 180, 80)
-            character.Humanoid.WalkSpeed = 16
-        end
+        char.Humanoid.WalkSpeed = isSpeedOn and 32 or 16
+        SpeedToggleBtn.Text = isSpeedOn and "⏹ TAT CHAY NHANH" or "▶ BAT CHAY NHANH"
+        SpeedToggleBtn.BackgroundColor3 = isSpeedOn and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
     end
 end)
 
--- ==================== BAY CLICK EVENT ====================
 FlyToggleBtn.MouseButton1Click:Connect(function()
     isFlying = not isFlying
-    if isFlying then
-        FlyToggleBtn.Text = "⏹ TẮT CHẾ ĐỘ BAY"
-        FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
-        startFlying()
-    else
-        FlyToggleBtn.Text = "✈ BẬT CHẾ ĐỘ BAY"
-        FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 200)
-        stopFlying()
-    end
+    FlyToggleBtn.Text = isFlying and "⏹ TAT CHE DO BAY" or "✈ BAT CHE DO BAY"
+    FlyToggleBtn.BackgroundColor3 = isFlying and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(50, 50, 50)
+    if isFlying then startFlying() else stopFlying() end
 end)
 
--- ==================== SETTINGS EVENTS ====================
-DecreaseSpeedBtn.MouseButton1Click:Connect(function()
-    flySpeed = math.max(10, flySpeed - 10)
-    SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
-end)
+DecreaseSpeedBtn.MouseButton1Click:Connect(function() flySpeed = math.max(10, flySpeed-10); SpeedSliderLabel.Text = "Tốc độ bay: "..flySpeed end)
+IncreaseSpeedBtn.MouseButton1Click:Connect(function() flySpeed = math.min(200, flySpeed+10); SpeedSliderLabel.Text = "Tốc độ bay: "..flySpeed end)
 
-IncreaseSpeedBtn.MouseButton1Click:Connect(function()
-    flySpeed = math.min(200, flySpeed + 10)
-    SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
-end)
-
-SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
-
-ReloadScriptBtn.MouseButton1Click:Connect(function()
-    ReloadScriptBtn.Text = "⏳ ĐANG TẢI..."
-    ReloadScriptBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
-    
-    if isFlying then
-        isFlying = false
-        stopFlying()
-    end
-    
-    task.wait(1)
-    ScreenGui:Destroy()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
-end)
-
--- ==================== HIDE/CLOSE EVENTS ====================
+-- UI Control
 local MinimizedIcon = Instance.new("TextButton")
-MinimizedIcon.Name = "MinimizedIcon"
-MinimizedIcon.Parent = ScreenGui
-MinimizedIcon.Size = UDim2.new(0, 50, 0, 50)
-MinimizedIcon.Position = UDim2.new(0.02, 0, 0.02, 0)
-MinimizedIcon.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MinimizedIcon.TextColor3 = Color3.fromRGB(100, 200, 255)
-MinimizedIcon.TextSize = 24
-MinimizedIcon.Font = Enum.Font.GothamBold
-MinimizedIcon.Text = "VNA"
-MinimizedIcon.BorderSizePixel = 0
-MinimizedIcon.Visible = false
-
-local CornerIcon = Instance.new("UICorner")
-CornerIcon.CornerRadius = UDim.new(0, 8)
-CornerIcon.Parent = MinimizedIcon
+MinimizedIcon.Parent = ScreenGui; MinimizedIcon.Size = UDim2.new(0, 50, 0, 50); MinimizedIcon.Position = UDim2.new(0.02, 0, 0.02, 0)
+MinimizedIcon.BackgroundColor3 = Color3.fromRGB(30,30,30); MinimizedIcon.TextColor3 = Color3.fromRGB(100,200,255); MinimizedIcon.Text = "VNA"; MinimizedIcon.Visible = false; MinimizedIcon.ZIndex = 100
+Instance.new("UICorner", MinimizedIcon).CornerRadius = UDim.new(0, 8)
 
 HideButton.MouseButton1Click:Connect(function()
     isMenuVisible = not isMenuVisible
@@ -624,36 +460,23 @@ HideButton.MouseButton1Click:Connect(function()
 end)
 
 MinimizedIcon.MouseButton1Click:Connect(function()
-    isMenuVisible = true
-    MainFrame.Visible = true
-    MinimizedIcon.Visible = false
+    isMenuVisible = true; MainFrame.Visible = true; MinimizedIcon.Visible = false
 end)
 
 CloseButton.MouseButton1Click:Connect(function()
-    if isFlying then
-        isFlying = false
-        stopFlying()
-    end
-    ScreenGui:Destroy()
+    stopFlying(); ScreenGui:Destroy()
 end)
 
--- ==================== XỬ LÝ NHÂN VẬT MỚI (PERSISTENCE) ====================
-LocalPlayer.CharacterAdded:Connect(function(character)
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- Áp dụng lại tốc độ chạy nếu đang bật
-    if isSpeedOn then
-        humanoid.WalkSpeed = 32
-    end
-    
-    -- Tắt bay khi chết (để an toàn)
-    if isFlying then
-        isFlying = false
-        FlyToggleBtn.Text = "✈ BẬT CHẾ ĐỘ BAY"
-        FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 200)
-        stopFlying()
-    end
+ReloadScriptBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy(); task.wait(0.5)
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
 end)
 
--- ==================== KHỞI TẠO ====================
+-- Character Persistence
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid")
+    if isSpeedOn then hum.WalkSpeed = 32 end
+    if isFlying then isFlying = false; stopFlying(); FlyToggleBtn.Text = "✈ BAT CHE DO BAY" end
+end)
+
 showPage("Speed")
