@@ -1,7 +1,7 @@
 --[[
-    VNA LITE - SLIDER EDITION
+    VNA LITE - RESPRAWN EDITION
     Actually fetches the latest script from GitHub.
-    Now with a 0-999 Speed Slider!
+    Now with Instant Respawn and Speed Slider!
 ]]
 
 local GITHUB_URL = "https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"
@@ -96,14 +96,15 @@ local OldLoader = getGuiParent():FindFirstChild("VNA_Loader")
 if OldLoader then OldLoader:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "VNA_Lite_Slider"
+ScreenGui.Name = "VNA_Lite_Final"
 ScreenGui.ResetOnSpawn = true
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = getGuiParent()
 
 local isSpeedEnabled = false
-local currentSpeedValue = 100 -- Default value for the slider
+local isRespawnEnabled = false
+local currentSpeedValue = 100
 
 -- Ready Animation Frame
 local ReadyFrame = Instance.new("Frame")
@@ -127,8 +128,8 @@ ReadyLogo.Font = Enum.Font.GothamBold
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 300, 0, 240) -- Increased height for slider
-MainFrame.Position = UDim2.new(0.5, -150, 0.5, -120)
+MainFrame.Size = UDim2.new(0, 300, 0, 280) -- Increased for multiple buttons
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Visible = false
@@ -196,23 +197,40 @@ local function makeDraggable(frame, handle)
 end
 makeDraggable(MainFrame, TitleBar)
 
--- Speed Button
-local SpeedBtn = Instance.new("TextButton")
-SpeedBtn.Parent = MainFrame
-SpeedBtn.Size = UDim2.new(0.8, 0, 0, 50)
-SpeedBtn.Position = UDim2.new(0.5, 0, 0, 80) -- Adjusted position
-SpeedBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-SpeedBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-SpeedBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-SpeedBtn.TextSize = 14
-SpeedBtn.Font = Enum.Font.GothamBold
-SpeedBtn.Text = "BAT CHAY NHANH"
-SpeedBtn.BorderSizePixel = 0
-Instance.new("UICorner", SpeedBtn).CornerRadius = UDim.new(0, 10)
-local SpeedStroke = Instance.new("UIStroke", SpeedBtn)
-SpeedStroke.Color = Color3.fromRGB(60,60,60)
-SpeedStroke.Thickness = 2
+-- Helper để tạo nút Toggle to
+local function createToggleBtn(name, text, pos)
+    local Btn = Instance.new("TextButton")
+    Btn.Name = name
+    Btn.Parent = MainFrame
+    Btn.Size = UDim2.new(0.8, 0, 0, 45)
+    Btn.Position = pos
+    Btn.AnchorPoint = Vector2.new(0.5, 0.5)
+    Btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    Btn.TextSize = 13
+    Btn.Font = Enum.Font.GothamBold
+    Btn.Text = text
+    Btn.BorderSizePixel = 0
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    local Stroke = Instance.new("UIStroke", Btn)
+    Stroke.Color = Color3.fromRGB(60,60,60)
+    Stroke.Thickness = 2
+    return Btn, Stroke
+end
 
+-- 1. Nút Hồi Sinh Nhanh
+local RespawnBtn, RespawnStroke = createToggleBtn("RespawnBtn", "BAT HOI SINH NHANH", UDim2.new(0.5, 0, 0, 75))
+RespawnBtn.MouseButton1Click:Connect(function()
+    isRespawnEnabled = not isRespawnEnabled
+    local targetColor = isRespawnEnabled and Color3.fromRGB(150, 50, 150) or Color3.fromRGB(40, 40, 40)
+    local targetText = isRespawnEnabled and "TAT HOI SINH NHANH" or "BAT HOI SINH NHANH"
+    TweenService:Create(RespawnBtn, TweenInfo.new(0.3), {BackgroundColor3 = targetColor}):Play()
+    TweenService:Create(RespawnStroke, TweenInfo.new(0.3), {Color = isRespawnEnabled and Color3.fromRGB(200, 100, 255) or Color3.fromRGB(60, 60, 60)}):Play()
+    RespawnBtn.Text = targetText
+end)
+
+-- 2. Nút Chạy Nhanh
+local SpeedBtn, SpeedStroke = createToggleBtn("SpeedBtn", "BAT CHAY NHANH", UDim2.new(0.5, 0, 0, 130))
 SpeedBtn.MouseButton1Click:Connect(function()
     isSpeedEnabled = not isSpeedEnabled
     local char = LocalPlayer.Character
@@ -226,11 +244,11 @@ SpeedBtn.MouseButton1Click:Connect(function()
     SpeedBtn.Text = targetText
 end)
 
--- ==================== SPEED SLIDER ====================
+-- 3. Speed Slider
 local SliderContainer = Instance.new("Frame")
 SliderContainer.Parent = MainFrame
 SliderContainer.Size = UDim2.new(0.8, 0, 0, 70)
-SliderContainer.Position = UDim2.new(0.5, 0, 0, 165)
+SliderContainer.Position = UDim2.new(0.5, 0, 0, 205)
 SliderContainer.AnchorPoint = Vector2.new(0.5, 0.5)
 SliderContainer.BackgroundTransparency = 1
 
@@ -273,10 +291,8 @@ local function updateSlider(input)
     local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
     SliderThumb.Position = UDim2.new(pos, 0, 0.5, 0)
     SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-    
     currentSpeedValue = math.floor(pos * 999)
     ValueLabel.Text = "TỐC ĐỘ: " .. currentSpeedValue
-    
     if isSpeedEnabled then
         local char = LocalPlayer.Character
         if char and char:FindFirstChild("Humanoid") then
@@ -286,24 +302,30 @@ local function updateSlider(input)
 end
 
 SliderThumb.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-    end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        updateSlider(input)
-    end
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then updateSlider(input) end
 end)
-
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+-- ==================== BACKGROUND LOGIC (HEARTBEAT) ====================
+RunService.Heartbeat:Connect(function()
+    -- Hồi sinh nhanh logic
+    if isRespawnEnabled then
+        pcall(function()
+            -- Cố gắng ép thời gian hồi sinh về 0
+            game:GetService("Players").RespawnTime = 0
+            if LocalPlayer.RespawnTime ~= 0 then
+                LocalPlayer.RespawnTime = 0
+            end
+        end)
     end
 end)
 
--- ==================== MINIMIZED ICON ====================
+-- Minimized Icon
 MinimizedIcon.Name = "MinimizedIcon"
 MinimizedIcon.Parent = ScreenGui
 MinimizedIcon.Size = UDim2.new(0, 50, 0, 50)
@@ -316,10 +338,8 @@ MinimizedIcon.TextSize = 16
 MinimizedIcon.Visible = false
 Instance.new("UICorner", MinimizedIcon).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", MinimizedIcon).Color = Color3.fromRGB(100, 200, 255)
-
 MinimizedIcon.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    MinimizedIcon.Visible = false
+    MainFrame.Visible = true; MinimizedIcon.Visible = false
 end)
 
 -- Transition to Menu
@@ -330,6 +350,6 @@ fadeOut:Play()
 fadeOut.Completed:Connect(function()
     ReadyFrame:Destroy()
     MainFrame.Visible = true
-    MainFrame.Size = UDim2.new(0, 280, 0, 220)
-    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 240)}):Play()
+    MainFrame.Size = UDim2.new(0, 280, 0, 260)
+    TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 300, 0, 280)}):Play()
 end)
