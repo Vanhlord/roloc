@@ -5,7 +5,7 @@
 ]]
 
 local GITHUB_URL = "https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"
-local DEV_MODE = false -- Set to true to bypass GitHub and run local file directly
+local DEV_MODE = true -- Set to true to bypass GitHub and run local file directly
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
