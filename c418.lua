@@ -13,7 +13,7 @@ end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "VNA_Menu_Fixed"
-ScreenGui.ResetOnSpawn = false
+ScreenGui.ResetOnSpawn = true
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
 ScreenGui.Parent = getGuiParent()
@@ -472,11 +472,6 @@ ReloadScriptBtn.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
 end)
 
--- Character Persistence
-LocalPlayer.CharacterAdded:Connect(function(char)
-    local hum = char:WaitForChild("Humanoid")
-    if isSpeedOn then hum.WalkSpeed = 32 end
-    if isFlying then isFlying = false; stopFlying(); FlyToggleBtn.Text = "✈ BAT CHE DO BAY" end
-end)
+ScreenGui.ResetOnSpawn = true
 
 showPage("Speed")
