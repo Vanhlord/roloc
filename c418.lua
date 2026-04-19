@@ -4,6 +4,11 @@ ScreenGui.Name = "MyMenu"
 ScreenGui.Parent = game.CoreGui
 
 -- Biến trạng thái
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
 local isMenuVisible = true
 local isSpeedOn = false
 local isFlying = false
@@ -15,14 +20,47 @@ local currentPage = "Speed"
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.Size = UDim2.new(0, 600, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -225)
+MainFrame.Size = UDim2.new(0, 500, 0, 330)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -165)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
 
 local CornerMain = Instance.new("UICorner")
 CornerMain.CornerRadius = UDim.new(0, 10)
 CornerMain.Parent = MainFrame
+
+-- ==================== DRAG FUNCTION ====================
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
 
 -- ==================== TITLE BAR ====================
 local TitleBar = Instance.new("Frame")
@@ -35,6 +73,9 @@ TitleBar.BorderSizePixel = 0
 local CornerTitle = Instance.new("UICorner")
 CornerTitle.CornerRadius = UDim.new(0, 10)
 CornerTitle.Parent = TitleBar
+
+-- Gọi hàm kéo cho TitleBar
+makeDraggable(MainFrame, TitleBar)
 
 -- Logo VNA
 local LogoText = Instance.new("TextLabel")
@@ -243,7 +284,7 @@ local flyMoveDirection = Vector3.new(0, 0, 0)
 local FlyControlContainer = Instance.new("Frame")
 FlyControlContainer.Name = "FlyControlContainer"
 FlyControlContainer.Parent = ContentArea
-FlyControlContainer.Size = UDim2.new(1, 0, 0, 220)
+FlyControlContainer.Size = UDim2.new(1, 0, 0, 180)
 FlyControlContainer.BackgroundTransparency = 1
 FlyControlContainer.BorderSizePixel = 0
 FlyControlContainer.Visible = false
@@ -380,9 +421,11 @@ local function showPage(pageName)
     SpeedInfoLabel.Visible = false
     FlyToggleBtn.Visible = false
     FlyInfoLabel.Visible = false
+    FlyControlContainer.Visible = false
     SpeedSliderLabel.Visible = false
     DecreaseSpeedBtn.Visible = false
     IncreaseSpeedBtn.Visible = false
+    ReloadScriptBtn.Visible = false
     InfoLabel.Visible = false
     
     -- Reset màu sidebar
@@ -398,6 +441,7 @@ local function showPage(pageName)
     elseif pageName == "Fly" then
         FlyToggleBtn.Visible = true
         FlyInfoLabel.Visible = true
+        FlyControlContainer.Visible = true
         FlyPageBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200)
     elseif pageName == "Settings" then
         SpeedSliderLabel.Visible = true
@@ -428,9 +472,78 @@ InfoPageBtn.MouseButton1Click:Connect(function()
     showPage("Info")
 end)
 
+-- ==================== HÀM XỬ LÝ BAY ====================
+local function stopFlying()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    
+    local character = LocalPlayer.Character
+    if character then
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            local bv = rootPart:FindFirstChild("VNABodyVelocity") or rootPart:FindFirstChild("BodyVelocity")
+            if bv then bv:Destroy() end
+        end
+    end
+end
+
+local function startFlying()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = character:WaitForChild("Humanoid")
+    local rootPart = character:WaitForChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    stopFlying() -- Đảm bảo không có body velocity cũ
+    
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Name = "VNABodyVelocity"
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+    bodyVelocity.Parent = rootPart
+    
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not isFlying then 
+            stopFlying()
+            return 
+        end
+        
+        local camera = workspace.CurrentCamera
+        local moveDirection = Vector3.new(0, 0, 0)
+        
+        -- Keyboard & Mobile Support
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or buttonStates.forward then
+            moveDirection = moveDirection + camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) or buttonStates.backward then
+            moveDirection = moveDirection - camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or buttonStates.left then
+            moveDirection = moveDirection - camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) or buttonStates.right then
+            moveDirection = moveDirection + camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) or buttonStates.up then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or buttonStates.down then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)
+        end
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit
+        end
+        
+        bodyVelocity.Velocity = moveDirection * flySpeed
+    end)
+end
+
 -- ==================== HÀM XỬ LÝ CHẠY NHANH ====================
 SpeedToggleBtn.MouseButton1Click:Connect(function()
-    local character = game.Players.LocalPlayer.Character
+    local character = LocalPlayer.Character
     if character and character:FindFirstChild("Humanoid") then
         isSpeedOn = not isSpeedOn
         if isSpeedOn then
@@ -445,68 +558,7 @@ SpeedToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ==================== HÀM XỬ LÝ BAY ====================
-local function startFlying()
-    local character = game.Players.LocalPlayer.Character
-    local humanoid = character:FindFirstChild("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bodyVelocity.Parent = rootPart
-    
-    flyConnection = game:GetService("RunService").RenderStepped:Connect(function()
-        if not isFlying then return end
-        
-        local camera = workspace.CurrentCamera
-        local moveDirection = Vector3.new(0, 0, 0)
-        
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-            moveDirection = moveDirection + camera.CFrame.LookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-            moveDirection = moveDirection - camera.CFrame.LookVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-            moveDirection = moveDirection - camera.CFrame.RightVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-            moveDirection = moveDirection + camera.CFrame.RightVector
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
-            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-        end
-        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then
-            moveDirection = moveDirection - Vector3.new(0, 1, 0)
-        end
-        
-        if moveDirection.Magnitude > 0 then
-            moveDirection = moveDirection.Unit
-        end
-        
-        bodyVelocity.Velocity = moveDirection * flySpeed
-    end)
-end
-
-local function stopFlying()
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    
-    local character = game.Players.LocalPlayer.Character
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if rootPart then
-        local bodyVelocity = rootPart:FindFirstChild("BodyVelocity")
-        if bodyVelocity then
-            bodyVelocity:Destroy()
-        end
-    end
-end
-
+-- ==================== BAY CLICK EVENT ====================
 FlyToggleBtn.MouseButton1Click:Connect(function()
     isFlying = not isFlying
     if isFlying then
@@ -520,7 +572,7 @@ FlyToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ==================== SETTINGS ====================
+-- ==================== SETTINGS EVENTS ====================
 DecreaseSpeedBtn.MouseButton1Click:Connect(function()
     flySpeed = math.max(10, flySpeed - 10)
     SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
@@ -533,7 +585,6 @@ end)
 
 SpeedSliderLabel.Text = "⚙️ Tốc độ bay hiện tại: " .. flySpeed
 
--- ==================== RELOAD SCRIPT ====================
 ReloadScriptBtn.MouseButton1Click:Connect(function()
     ReloadScriptBtn.Text = "⏳ ĐANG TẢI..."
     ReloadScriptBtn.BackgroundColor3 = Color3.fromRGB(150, 100, 50)
@@ -548,7 +599,7 @@ ReloadScriptBtn.MouseButton1Click:Connect(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Vanhlord/roloc/main/c418.lua"))()
 end)
 
--- ==================== NÚT ẨN MENU ====================
+-- ==================== HIDE/CLOSE EVENTS ====================
 local MinimizedIcon = Instance.new("TextButton")
 MinimizedIcon.Name = "MinimizedIcon"
 MinimizedIcon.Parent = ScreenGui
@@ -578,7 +629,6 @@ MinimizedIcon.MouseButton1Click:Connect(function()
     MinimizedIcon.Visible = false
 end)
 
--- ==================== NÚT ĐÓNG MENU ====================
 CloseButton.MouseButton1Click:Connect(function()
     if isFlying then
         isFlying = false
@@ -587,5 +637,23 @@ CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- ==================== MẬT ĐỊNH HIỂN THỊ TRANG ĐẦU ====================
+-- ==================== XỬ LÝ NHÂN VẬT MỚI (PERSISTENCE) ====================
+LocalPlayer.CharacterAdded:Connect(function(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    
+    -- Áp dụng lại tốc độ chạy nếu đang bật
+    if isSpeedOn then
+        humanoid.WalkSpeed = 32
+    end
+    
+    -- Tắt bay khi chết (để an toàn)
+    if isFlying then
+        isFlying = false
+        FlyToggleBtn.Text = "✈ BẬT CHẾ ĐỘ BAY"
+        FlyToggleBtn.BackgroundColor3 = Color3.fromRGB(80, 150, 200)
+        stopFlying()
+    end
+end)
+
+-- ==================== KHỞI TẠO ====================
 showPage("Speed")
